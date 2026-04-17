@@ -4,33 +4,36 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model Listing {
-  id             Int      @id @default(autoincrement())
-  address        String
-  city           String   @default("")
-  state          String   @default("")
-  price          Float
-  bedrooms       Int      @default(0)
-  bathrooms      Float    @default(0)
-  sqft           Int      @default(0)
-  yearBuilt      Int      @default(0)
-  agentNotes     String   @default("")
-  mlsDescription String   @default("")
-  cmaData        String   @default("[]")  // JSON array of comps
-  cmaSummary     String   @default("")
-  videoScript    String   @default("")
-  fairHousingScan String  @default("")
-  sellerNotes    String   @default("")
-  coverPhotoB64  String   @default("")    // base64 branded cover photo
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id              Int      @id @default(autoincrement())
+  userId          String
+  address         String
+  city            String   @default("")
+  state           String   @default("")
+  price           Float
+  bedrooms        Int      @default(0)
+  bathrooms       Float    @default(0)
+  sqft            Int      @default(0)
+  yearBuilt       Int      @default(0)
+  agentNotes      String   @default("")
+  mlsDescription  String   @default("")
+  cmaData         String   @default("[]")
+  cmaSummary      String   @default("")
+  videoScript     String   @default("")
+  fairHousingScan String   @default("")
+  sellerNotes     String   @default("")
+  coverPhotoB64   String   @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model BrandingProfile {
-  id              Int      @id @default(1)
+  id              String   @id          // Clerk userId
   agentName       String
   phone           String
   email           String
