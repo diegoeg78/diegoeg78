@@ -17,6 +17,7 @@ export interface ListingPayload {
   bathrooms: number;
   sqft: number;
   yearBuilt: number;
+  agentNotes: string;
   mlsDescription: string;
   cmaData: string;
   cmaSummary: string;
@@ -34,6 +35,7 @@ const blank: ListingPayload = {
   bathrooms: 2,
   sqft: 0,
   yearBuilt: 0,
+  agentNotes: "",
   mlsDescription: "",
   cmaData: "[]",
   cmaSummary: "",
@@ -43,30 +45,73 @@ const blank: ListingPayload = {
 };
 
 const TABS = [
-  { id: "details", label: "Details" },
-  { id: "mls", label: "MLS Description" },
-  { id: "cma", label: "CMA" },
-  { id: "video", label: "Video Script" },
+  { id: "details",    label: "Details" },
+  { id: "mls",        label: "MLS Description" },
+  { id: "cma",        label: "CMA" },
+  { id: "video",      label: "Video Script" },
   { id: "compliance", label: "Fair Housing" },
-  { id: "seller", label: "Seller Notes" },
+  { id: "seller",     label: "Seller Notes" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
+
+interface GenerateState {
+  loading: boolean;
+  preview: string;
+  model: string;
+  costUsd: number;
+  error: string;
+}
+
+const emptyGen = (): GenerateState => ({
+  loading: false, preview: "", model: "", costUsd: 0, error: "",
+});
 
 export default function ListingForm({ initial, listingId }: ListingFormProps) {
   const [form, setForm] = useState<ListingPayload>({ ...blank, ...initial });
   const [tab, setTab] = useState<TabId>("details");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [gen, setGen] = useState<GenerateState>(emptyGen());
   const router = useRouter();
 
   function set<K extends keyof ListingPayload>(k: K, v: ListingPayload[K]) {
     setForm((f) => ({ ...f, [k]: v }));
   }
 
+  function resetGen() { setGen(emptyGen()); }
+
+  function acceptGen(field: keyof ListingPayload) {
+    set(field, gen.preview as ListingPayload[typeof field]);
+    resetGen();
+  }
+
+  async function generate(task: string) {
+    if (!listingId) return;
+    setGen({ loading: true, preview: "", model: "", costUsd: 0, error: "" });
+    try {
+      const res = await fetch(`/api/listings/${listingId}/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task, agentNotes: form.agentNotes }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Generation failed");
+      setGen({
+        loading: false,
+        preview: data.text,
+        model: data.model,
+        costUsd: data.estimatedCostUsd,
+        error: "",
+      });
+    } catch (e) {
+      setGen({ loading: false, preview: "", model: "", costUsd: 0, error: String(e) });
+    }
+  }
+
   async function handleSave() {
     setSaving(true);
-    setError("");
+    setSaveError("");
     try {
       const url = listingId ? `/api/listings/${listingId}` : "/api/listings";
       const method = listingId ? "PATCH" : "POST";
@@ -79,7 +124,7 @@ export default function ListingForm({ initial, listingId }: ListingFormProps) {
       const saved = await res.json();
       if (!listingId) router.push(`/listings/${saved.id}`);
     } catch (e) {
-      setError(String(e));
+      setSaveError(String(e));
     } finally {
       setSaving(false);
     }
@@ -87,16 +132,70 @@ export default function ListingForm({ initial, listingId }: ListingFormProps) {
 
   const inputCls =
     "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
-  const textareaCls = `${inputCls} min-h-[220px] resize-y font-mono text-xs`;
+  const textareaCls = `${inputCls} min-h-[200px] resize-y font-mono text-xs`;
+
+  // ── Generate panel shown under the textarea when preview exists ──────────
+  function GenPanel({ field }: { field: keyof ListingPayload }) {
+    if (gen.error) {
+      return (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+          {gen.error}
+        </p>
+      );
+    }
+    if (!gen.preview) return null;
+    return (
+      <div className="border border-green-200 rounded-xl bg-green-50 p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium text-green-700">AI Draft — review before accepting</span>
+          <span className="text-xs text-green-600 font-mono">
+            {gen.model.includes("haiku") ? "Haiku" : "Sonnet"} · ${gen.costUsd.toFixed(4)}
+          </span>
+        </div>
+        <pre className="text-xs text-gray-800 whitespace-pre-wrap font-sans leading-relaxed">
+          {gen.preview}
+        </pre>
+        <div className="flex gap-2">
+          <button
+            onClick={() => acceptGen(field)}
+            className="px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 font-medium"
+          >
+            Accept → paste into field
+          </button>
+          <button
+            onClick={resetGen}
+            className="px-3 py-1.5 bg-white border border-gray-300 text-gray-600 text-xs rounded-lg hover:bg-gray-50"
+          >
+            Discard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Generate button (disabled until listing is saved) ────────────────────
+  function GenBtn({ task, label }: { task: string; label: string }) {
+    const disabled = !listingId || gen.loading;
+    return (
+      <button
+        onClick={() => { resetGen(); generate(task); }}
+        disabled={disabled}
+        title={!listingId ? "Save the listing first" : undefined}
+        className="px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-violet-50 border-violet-300 text-violet-700 hover:bg-violet-100"
+      >
+        {gen.loading ? "Generating…" : `✦ ${label}`}
+      </button>
+    );
+  }
 
   return (
     <div className="space-y-4">
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200">
+      <div className="flex flex-wrap gap-1 border-b border-gray-200">
         {TABS.map((t) => (
           <button
             key={t.id}
-            onClick={() => setTab(t.id)}
+            onClick={() => { setTab(t.id); resetGen(); }}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
               tab === t.id
                 ? "bg-white border border-b-white border-gray-200 -mb-px text-blue-600"
@@ -108,7 +207,7 @@ export default function ListingForm({ initial, listingId }: ListingFormProps) {
         ))}
       </div>
 
-      {/* Details tab */}
+      {/* ── Details ── */}
       {tab === "details" && (
         <div className="grid grid-cols-1 gap-4">
           <div>
@@ -128,10 +227,10 @@ export default function ListingForm({ initial, listingId }: ListingFormProps) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {(
               [
-                { key: "price", label: "List Price ($)" },
-                { key: "bedrooms", label: "Bedrooms" },
+                { key: "price",     label: "List Price ($)" },
+                { key: "bedrooms",  label: "Bedrooms" },
                 { key: "bathrooms", label: "Bathrooms" },
-                { key: "sqft", label: "Sq Ft" },
+                { key: "sqft",      label: "Sq Ft" },
                 { key: "yearBuilt", label: "Year Built" },
               ] as const
             ).map(({ key, label }) => (
@@ -146,16 +245,39 @@ export default function ListingForm({ initial, listingId }: ListingFormProps) {
               </div>
             ))}
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Agent Notes / Highlights
+              <span className="ml-2 font-normal text-gray-400 text-xs">used by AI for all generation tasks</span>
+            </label>
+            <textarea
+              value={form.agentNotes}
+              onChange={(e) => set("agentNotes", e.target.value)}
+              className={`${inputCls} min-h-[100px] resize-y`}
+              placeholder="Renovated kitchen, new roof 2023, quiet cul-de-sac, walking distance to park…"
+            />
+          </div>
         </div>
       )}
 
+      {/* ── MLS Description ── */}
       {tab === "mls" && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">MLS Description</label>
-          <textarea value={form.mlsDescription} onChange={(e) => set("mlsDescription", e.target.value)} className={textareaCls} placeholder="Paste or type the AI-generated MLS description..." />
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-gray-700">MLS Description</label>
+            <GenBtn task="mls-description" label="Generate MLS Description" />
+          </div>
+          <textarea
+            value={form.mlsDescription}
+            onChange={(e) => set("mlsDescription", e.target.value)}
+            className={textareaCls}
+            placeholder="Paste or generate an MLS description…"
+          />
+          <GenPanel field="mlsDescription" />
         </div>
       )}
 
+      {/* ── CMA ── */}
       {tab === "cma" && (
         <div className="space-y-4">
           <div>
@@ -169,39 +291,85 @@ export default function ListingForm({ initial, listingId }: ListingFormProps) {
               placeholder={`[\n  {\n    "address": "123 Elm St",\n    "price": 485000,\n    "sqft": 1850,\n    "beds": 3,\n    "baths": 2,\n    "soldDate": "2025-03-15"\n  }\n]`}
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">CMA Summary</label>
-            <textarea value={form.cmaSummary} onChange={(e) => set("cmaSummary", e.target.value)} className={textareaCls} placeholder="Pricing analysis and recommendation..." />
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-gray-700">CMA Summary</label>
+              <GenBtn task="cma-summary" label="Generate CMA Summary" />
+            </div>
+            <textarea
+              value={form.cmaSummary}
+              onChange={(e) => set("cmaSummary", e.target.value)}
+              className={textareaCls}
+              placeholder="Pricing analysis and recommendation…"
+            />
+            <GenPanel field="cmaSummary" />
           </div>
         </div>
       )}
 
+      {/* ── Video Script ── */}
       {tab === "video" && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Video Script</label>
-          <textarea value={form.videoScript} onChange={(e) => set("videoScript", e.target.value)} className={textareaCls} placeholder="Paste the AI-generated video script..." />
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-gray-700">Video Script</label>
+            <GenBtn task="video-script" label="Generate Video Script" />
+          </div>
+          <textarea
+            value={form.videoScript}
+            onChange={(e) => set("videoScript", e.target.value)}
+            className={textareaCls}
+            placeholder="Shooting script for the listing walkthrough video…"
+          />
+          <GenPanel field="videoScript" />
         </div>
       )}
 
+      {/* ── Fair Housing ── */}
       {tab === "compliance" && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Fair Housing Scan Results</label>
-          <textarea value={form.fairHousingScan} onChange={(e) => set("fairHousingScan", e.target.value)} className={textareaCls} placeholder="Fair housing compliance analysis..." />
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-gray-700">Fair Housing Scan Results</label>
+            <GenBtn task="fair-housing" label="Scan MLS Description" />
+          </div>
+          {!form.mlsDescription && (
+            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+              Fill in the MLS Description first — the scanner checks that text.
+            </p>
+          )}
+          <textarea
+            value={form.fairHousingScan}
+            onChange={(e) => set("fairHousingScan", e.target.value)}
+            className={textareaCls}
+            placeholder="Run the scanner to check your MLS description for fair housing compliance…"
+          />
+          <GenPanel field="fairHousingScan" />
         </div>
       )}
 
+      {/* ── Seller Notes ── */}
       {tab === "seller" && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Seller Presentation Notes</label>
-          <textarea value={form.sellerNotes} onChange={(e) => set("sellerNotes", e.target.value)} className={textareaCls} placeholder="Notes and talking points for the seller presentation..." />
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-gray-700">Seller Presentation Notes</label>
+            <GenBtn task="seller-presentation" label="Generate Talking Points" />
+          </div>
+          <textarea
+            value={form.sellerNotes}
+            onChange={(e) => set("sellerNotes", e.target.value)}
+            className={textareaCls}
+            placeholder="Talking points for the seller presentation…"
+          />
+          <GenPanel field="sellerNotes" />
         </div>
       )}
 
-      {error && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{error}</p>
+      {saveError && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+          {saveError}
+        </p>
       )}
 
-      <div className="flex gap-3 pt-2">
+      <div className="flex flex-wrap gap-3 pt-2 border-t border-gray-100">
         <button
           onClick={handleSave}
           disabled={saving}
@@ -214,14 +382,14 @@ export default function ListingForm({ initial, listingId }: ListingFormProps) {
             <a
               href={`/api/listings/${listingId}/export-pdf`}
               target="_blank"
-              className="px-5 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 font-medium text-sm inline-flex items-center gap-2"
+              className="px-5 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 font-medium text-sm"
             >
               Export PDF
             </a>
             <a
               href={`/api/listings/${listingId}/export-docx`}
               target="_blank"
-              className="px-5 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 font-medium text-sm inline-flex items-center gap-2"
+              className="px-5 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 font-medium text-sm"
             >
               Export Word
             </a>

@@ -17,6 +17,7 @@ model Listing {
   bathrooms      Float    @default(0)
   sqft           Int      @default(0)
   yearBuilt      Int      @default(0)
+  agentNotes     String   @default("")
   mlsDescription String   @default("")
   cmaData        String   @default("[]")  // JSON array of comps
   cmaSummary     String   @default("")
