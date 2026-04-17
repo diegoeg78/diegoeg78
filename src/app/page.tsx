@@ -1,101 +1,161 @@
-import Image from "next/image";
+import { prisma } from "@/lib/prisma";
+import Link from "next/link";
+import ListingCard from "@/components/ListingCard";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function CommandCenter() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const listings = await (prisma as any).listing.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      address: true,
+      city: true,
+      state: true,
+      price: true,
+      bedrooms: true,
+      bathrooms: true,
+      sqft: true,
+      mlsDescription: true,
+      cmaSummary: true,
+      videoScript: true,
+      fairHousingScan: true,
+      sellerNotes: true,
+      cmaData: true,
+    },
+  });
+
+  const profile = await prisma.brandingProfile.findUnique({ where: { id: 1 } });
+  const agentName = profile?.agentName;
+
+  // Aggregate stats
+  const totalListings = listings.length;
+  const SECTIONS = ["mlsDescription", "cmaSummary", "videoScript", "fairHousingScan", "sellerNotes"];
+  const totalSections = totalListings * SECTIONS.length;
+  const completedSections = listings.reduce(
+    (acc: number, l: Record<string, string>) =>
+      acc + SECTIONS.filter((k) => l[k]?.trim().length > 0).length,
+    0
+  );
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <main className="max-w-6xl mx-auto px-6 py-10">
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* Hero row */}
+      <div className="flex items-start justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Command Center</h1>
+          {agentName ? (
+            <p className="text-gray-500 mt-1">Welcome back, {agentName}</p>
+          ) : (
+            <p className="text-amber-600 text-sm mt-1">
+              <Link href="/settings" className="underline underline-offset-2">
+                Set up your branding profile
+              </Link>{" "}
+              to personalize AI outputs
+            </p>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href="/listings/new"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          + New Listing
+        </Link>
+      </div>
+
+      {/* Stats bar */}
+      <div className="grid grid-cols-3 gap-4 mb-10">
+        <StatCard
+          value={totalListings}
+          label="Listings"
+          sub={totalListings === 1 ? "active listing" : "active listings"}
+          color="blue"
+        />
+        <StatCard
+          value={totalSections > 0 ? `${Math.round((completedSections / totalSections) * 100)}%` : "—"}
+          label="Complete"
+          sub={`${completedSections} of ${totalSections} sections filled`}
+          color={completedSections === totalSections && totalSections > 0 ? "green" : "yellow"}
+        />
+        <StatCard
+          value={totalListings > 0 ? `~$${(totalListings * 0.045).toFixed(2)}` : "$0"}
+          label="Est. AI Cost"
+          sub="per full playbook generation"
+          color="gray"
+        />
+      </div>
+
+      {/* Listings grid */}
+      {listings.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          {listings.map((l: Parameters<typeof ListingCard>[0]["listing"]) => (
+            <ListingCard key={l.id} listing={l} />
+          ))}
+        </div>
+      )}
+
+      {/* Quick links footer */}
+      <div className="mt-12 pt-6 border-t border-gray-200 flex flex-wrap gap-4 text-sm text-gray-400">
+        <Link href="/photos" className="hover:text-gray-600">Photo Branding</Link>
+        <Link href="/listings" className="hover:text-gray-600">All Listings</Link>
+        <Link href="/settings" className="hover:text-gray-600">Branding Settings</Link>
+      </div>
+    </main>
+  );
+}
+
+function StatCard({
+  value,
+  label,
+  sub,
+  color,
+}: {
+  value: string | number;
+  label: string;
+  sub: string;
+  color: "blue" | "green" | "yellow" | "gray";
+}) {
+  const ring = {
+    blue:   "border-blue-200 bg-blue-50",
+    green:  "border-green-200 bg-green-50",
+    yellow: "border-yellow-200 bg-yellow-50",
+    gray:   "border-gray-200 bg-gray-50",
+  }[color];
+
+  const val = {
+    blue:   "text-blue-700",
+    green:  "text-green-700",
+    yellow: "text-yellow-700",
+    gray:   "text-gray-700",
+  }[color];
+
+  return (
+    <div className={`rounded-xl border p-5 ${ring}`}>
+      <p className={`text-3xl font-bold ${val}`}>{value}</p>
+      <p className="text-sm font-semibold text-gray-700 mt-1">{label}</p>
+      <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="text-center py-24 border-2 border-dashed border-gray-200 rounded-2xl">
+      <p className="text-4xl mb-4">🏠</p>
+      <p className="text-gray-600 font-medium mb-1">No listings yet</p>
+      <p className="text-gray-400 text-sm mb-6">
+        Create your first listing to start generating playbooks
+      </p>
+      <Link
+        href="/listings/new"
+        className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm"
+      >
+        Create First Listing
+      </Link>
     </div>
   );
 }
