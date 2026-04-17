@@ -7,6 +7,27 @@ datasource db {
   provider = "sqlite"
 }
 
+model Listing {
+  id             Int      @id @default(autoincrement())
+  address        String
+  city           String   @default("")
+  state          String   @default("")
+  price          Float
+  bedrooms       Int      @default(0)
+  bathrooms      Float    @default(0)
+  sqft           Int      @default(0)
+  yearBuilt      Int      @default(0)
+  mlsDescription String   @default("")
+  cmaData        String   @default("[]")  // JSON array of comps
+  cmaSummary     String   @default("")
+  videoScript    String   @default("")
+  fairHousingScan String  @default("")
+  sellerNotes    String   @default("")
+  coverPhotoB64  String   @default("")    // base64 branded cover photo
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
 model BrandingProfile {
   id              Int      @id @default(1)
   agentName       String

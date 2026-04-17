@@ -29,6 +29,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 min-h-screen`}>
         <nav className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-6">
           <span className="font-bold text-gray-900 text-lg">ListingOS</span>
+          <Link href="/listings" className="text-sm text-gray-600 hover:text-gray-900">Listings</Link>
           <Link href="/photos" className="text-sm text-gray-600 hover:text-gray-900">Photo Branding</Link>
           <Link href="/settings" className="text-sm text-gray-600 hover:text-gray-900">Settings</Link>
         </nav>
