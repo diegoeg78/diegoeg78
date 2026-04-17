@@ -210,13 +210,22 @@ export default function ListingForm({ initial, listingId }: ListingFormProps) {
           {saving ? "Saving…" : listingId ? "Save Changes" : "Create Listing"}
         </button>
         {listingId && (
-          <a
-            href={`/api/listings/${listingId}/export-pdf`}
-            target="_blank"
-            className="px-5 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 font-medium text-sm inline-flex items-center gap-2"
-          >
-            Export Playbook PDF
-          </a>
+          <>
+            <a
+              href={`/api/listings/${listingId}/export-pdf`}
+              target="_blank"
+              className="px-5 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 font-medium text-sm inline-flex items-center gap-2"
+            >
+              Export PDF
+            </a>
+            <a
+              href={`/api/listings/${listingId}/export-docx`}
+              target="_blank"
+              className="px-5 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 font-medium text-sm inline-flex items-center gap-2"
+            >
+              Export Word
+            </a>
+          </>
         )}
       </div>
     </div>

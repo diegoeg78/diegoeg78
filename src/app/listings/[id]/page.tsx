@@ -37,13 +37,22 @@ export default async function ListingDetailPage({
             {listing.bedrooms}bd · {listing.bathrooms}ba · {listing.sqft.toLocaleString()} sqft
           </p>
         </div>
-        <a
-          href={`/api/listings/${listing.id}/export-pdf`}
-          target="_blank"
-          className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 font-medium text-sm"
-        >
-          Export PDF Playbook
-        </a>
+        <div className="flex gap-2">
+          <a
+            href={`/api/listings/${listing.id}/export-pdf`}
+            target="_blank"
+            className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 font-medium text-sm"
+          >
+            Export PDF
+          </a>
+          <a
+            href={`/api/listings/${listing.id}/export-docx`}
+            target="_blank"
+            className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 font-medium text-sm"
+          >
+            Export Word
+          </a>
+        </div>
       </div>
 
       <ListingForm
