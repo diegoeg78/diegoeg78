@@ -1,0 +1,23 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model BrandingProfile {
+  id              Int      @id @default(1)
+  agentName       String
+  phone           String
+  email           String
+  website         String   @default("")
+  overlayPosition String   @default("bottom-right")
+  bgColor         String   @default("#000000")
+  textColor       String   @default("#ffffff")
+  opacity         Float    @default(0.6)
+  fontSize        Int      @default(22)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
