@@ -80,6 +80,50 @@ function client(): Anthropic {
   return _client;
 }
 
+// ── MLS screenshot extraction (vision, Haiku) ─────────────────────────────
+export interface ExtractedListing {
+  address: string;
+  city: string;
+  state: string;
+  price: number;
+  bedrooms: number;
+  bathrooms: number;
+  sqft: number;
+  yearBuilt: number;
+  agentNotes: string;
+}
+
+export async function extractFromScreenshot(
+  imageBase64: string,
+  mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" = "image/jpeg"
+): Promise<ExtractedListing> {
+  const response = await client().messages.create({
+    model: HAIKU,
+    max_tokens: 512,
+    system: "You are a real estate data extractor. Given an MLS listing screenshot, extract property details and return valid JSON only — no markdown, no explanation.",
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "image",
+            source: { type: "base64", media_type: mediaType, data: imageBase64 },
+          },
+          {
+            type: "text",
+            text: `Extract listing details from this MLS screenshot. Return ONLY a JSON object with exactly these fields (use 0 for missing numbers, "" for missing strings):
+{"address":"","city":"","state":"","price":0,"bedrooms":0,"bathrooms":0,"sqft":0,"yearBuilt":0,"agentNotes":""}`,
+          },
+        ],
+      },
+    ],
+  });
+
+  const raw = response.content[0].type === "text" ? response.content[0].text : "{}";
+  const cleaned = raw.replace(/```json\s*/g, "").replace(/```/g, "").trim();
+  return JSON.parse(cleaned) as ExtractedListing;
+}
+
 // ── Main router ────────────────────────────────────────────────────────────
 export async function route(
   task: TaskType,

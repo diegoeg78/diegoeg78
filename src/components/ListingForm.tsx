@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 interface ListingFormProps {
@@ -73,6 +73,10 @@ export default function ListingForm({ initial, listingId }: ListingFormProps) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [gen, setGen] = useState<GenerateState>(emptyGen());
+  const [extracting, setExtracting] = useState(false);
+  const [extractError, setExtractError] = useState("");
+  const [extractedBanner, setExtractedBanner] = useState(false);
+  const screenshotInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   function set<K extends keyof ListingPayload>(k: K, v: ListingPayload[K]) {
@@ -106,6 +110,46 @@ export default function ListingForm({ initial, listingId }: ListingFormProps) {
       });
     } catch (e) {
       setGen({ loading: false, preview: "", model: "", costUsd: 0, error: String(e) });
+    }
+  }
+
+  async function handleScreenshotUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setExtracting(true);
+    setExtractError("");
+    setExtractedBanner(false);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, "");
+      const mediaType = file.type as "image/jpeg" | "image/png" | "image/webp";
+      const res = await fetch("/api/listings/extract-screenshot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64: base64, mediaType }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Extraction failed");
+      if (data.address)   set("address",   data.address);
+      if (data.city)      set("city",      data.city);
+      if (data.state)     set("state",     data.state);
+      if (data.price)     set("price",     data.price);
+      if (data.bedrooms)  set("bedrooms",  data.bedrooms);
+      if (data.bathrooms) set("bathrooms", data.bathrooms);
+      if (data.sqft)      set("sqft",      data.sqft);
+      if (data.yearBuilt) set("yearBuilt", data.yearBuilt);
+      if (data.agentNotes) set("agentNotes", data.agentNotes);
+      setExtractedBanner(true);
+    } catch (err) {
+      setExtractError(String(err));
+    } finally {
+      setExtracting(false);
+      if (screenshotInputRef.current) screenshotInputRef.current.value = "";
     }
   }
 
@@ -210,6 +254,42 @@ export default function ListingForm({ initial, listingId }: ListingFormProps) {
       {/* ── Details ── */}
       {tab === "details" && (
         <div className="grid grid-cols-1 gap-4">
+
+          {/* MLS Screenshot import */}
+          <div className="border border-dashed border-amber-300 rounded-xl p-4 bg-amber-50">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <p className="text-sm font-medium text-gray-800">Import from MLS Screenshot</p>
+                <p className="text-xs text-gray-500 mt-0.5">Upload a screenshot — AI (Haiku) extracts address, price, beds, baths, sqft automatically</p>
+              </div>
+              <div>
+                <input
+                  ref={screenshotInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleScreenshotUpload}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => screenshotInputRef.current?.click()}
+                  disabled={extracting}
+                  className="px-4 py-2 text-sm font-medium rounded-lg border border-amber-400 bg-white text-amber-800 hover:bg-amber-100 disabled:opacity-50 transition-colors"
+                >
+                  {extracting ? "Extracting…" : "📸 Upload MLS Screenshot"}
+                </button>
+              </div>
+            </div>
+            {extractError && (
+              <p className="mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{extractError}</p>
+            )}
+            {extractedBanner && (
+              <div className="mt-3 flex items-center justify-between bg-green-50 border border-green-200 rounded px-3 py-2">
+                <p className="text-xs text-green-800">✓ Fields populated from screenshot — please review and correct</p>
+                <button onClick={() => setExtractedBanner(false)} className="text-green-600 hover:text-green-900 text-xs ml-4">✕</button>
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
             <input type="text" value={form.address} onChange={(e) => set("address", e.target.value)} className={inputCls} />
