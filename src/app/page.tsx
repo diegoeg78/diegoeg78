@@ -5,7 +5,13 @@ import { Playfair_Display } from "next/font/google";
 
 export const dynamic = "force-dynamic";
 
-const playfair = Playfair_Display({ subsets: ["latin"], display: "swap", variable: "--font-playfair" });
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  display: "swap",
+  style: ["normal", "italic"],
+  weight: ["400", "700", "800", "900"],
+  variable: "--font-playfair",
+});
 
 export default async function LandingPage() {
   const { userId } = await auth();
@@ -47,7 +53,7 @@ export default async function LandingPage() {
             </div>
             <h1 className="text-6xl md:text-7xl font-bold text-gray-950 leading-[1.05] mb-8">
               Sell smarter.<br />
-              <em className="text-[#c49a2a] not-italic">Close faster.</em><br />
+              <span className="italic text-[#c49a2a]">Close faster.</span><br />
               Work less.
             </h1>
             <p className="text-lg text-gray-600 mb-10 leading-relaxed max-w-md" style={{ fontFamily: "system-ui, sans-serif" }}>
@@ -111,15 +117,16 @@ export default async function LandingPage() {
       <section className="bg-[#f5f0e8] border-t border-b border-[#e5ddd0]">
         <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 divide-x divide-[#e5ddd0]">
           {[
-            { value: "2min", label: "TO FULL PLAYBOOK" },
-            { value: "6+",   label: "FREE DATA SOURCES" },
-            { value: "100%", label: "MLS COMPLIANT" },
-            { value: "$0",   label: "API DATA COSTS" },
-          ].map(({ value, label }) => (
+            { prefix: "",  num: "2",   suffix: "min", label: "TO FULL PLAYBOOK" },
+            { prefix: "",  num: "6",   suffix: "+",   label: "FREE DATA SOURCES" },
+            { prefix: "",  num: "100", suffix: "%",   label: "MLS COMPLIANT" },
+            { prefix: "$", num: "0",   suffix: "",    label: "API DATA COSTS" },
+          ].map(({ prefix, num, suffix, label }) => (
             <div key={label} className="px-8 py-8">
-              <p className="text-4xl font-bold text-gray-950 mb-1">
-                {value.replace(/[a-z%$+]/g, "")}
-                <span className="text-[#c49a2a]">{value.match(/[a-z%$+min]+/i)?.[0]}</span>
+              <p className="text-5xl font-bold text-gray-950 mb-2">
+                <span className="text-[#c49a2a]">{prefix}</span>
+                {num}
+                <span className="text-[#c49a2a]">{suffix}</span>
               </p>
               <p className="text-xs font-semibold text-gray-400 tracking-widest uppercase" style={{ fontFamily: "system-ui, sans-serif" }}>{label}</p>
             </div>
