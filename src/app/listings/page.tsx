@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import DeleteListingButton from "@/components/DeleteListingButton";
 
 export const dynamic = "force-dynamic";
 
@@ -37,21 +38,23 @@ export default async function ListingsPage() {
       ) : (
         <div className="grid gap-3">
           {listings.map((l) => (
-            <Link
+            <div
               key={l.id}
-              href={`/listings/${l.id}`}
               className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-sm transition-all"
             >
-              <div>
+              <Link href={`/listings/${l.id}`} className="flex-1 min-w-0">
                 <p className="font-semibold text-gray-900">{l.address}</p>
                 <p className="text-sm text-gray-500">{[l.city, l.state].filter(Boolean).join(", ")}</p>
                 <p className="text-xs text-gray-400 mt-1">{l.bedrooms}bd · {l.bathrooms}ba · {l.sqft.toLocaleString()} sqft</p>
+              </Link>
+              <div className="flex items-center gap-4 ml-4">
+                <div className="text-right">
+                  <p className="font-bold text-blue-600">${l.price.toLocaleString()}</p>
+                  <Link href={`/listings/${l.id}`} className="text-xs text-gray-400 hover:text-gray-600">View playbook →</Link>
+                </div>
+                <DeleteListingButton listingId={l.id} address={l.address} />
               </div>
-              <div className="text-right">
-                <p className="font-bold text-blue-600">${l.price.toLocaleString()}</p>
-                <span className="text-xs text-gray-400">View playbook →</span>
-              </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}

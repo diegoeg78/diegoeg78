@@ -1,5 +1,6 @@
 import Link from "next/link";
 import GenerateAllButton from "./GenerateAllButton";
+import DeleteListingButton from "./DeleteListingButton";
 
 interface ListingRow {
   id: number;
@@ -125,6 +126,9 @@ export default function ListingCard({ listing }: { listing: ListingRow }) {
           Word
         </a>
         <GenerateAllButton listingId={listing.id} />
+        <div className="ml-auto">
+          <DeleteListingButton listingId={listing.id} address={listing.address} />
+        </div>
       </div>
     </div>
   );

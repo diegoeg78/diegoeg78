@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import ListingForm from "@/components/ListingForm";
+import DeleteListingButton from "@/components/DeleteListingButton";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +31,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
         <div className="flex gap-2">
           <a href={`/api/listings/${listing.id}/export-pdf`} target="_blank" className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 font-medium text-sm">Export PDF</a>
           <a href={`/api/listings/${listing.id}/export-docx`} target="_blank" className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 font-medium text-sm">Export Word</a>
+          <DeleteListingButton listingId={listing.id} address={listing.address} variant="large" />
         </div>
       </div>
 
