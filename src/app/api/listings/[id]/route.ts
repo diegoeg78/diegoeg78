@@ -11,7 +11,14 @@ async function getOwnedListing(id: number, userId: string) {
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  {
+  try {
+  { params }
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}: { params: { id: string } }
 ) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -23,7 +30,14 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  {
+  try {
+  { params }
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}: { params: { id: string } }
 ) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -41,7 +55,14 @@ export async function PATCH(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  {
+  try {
+  { params }
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}: { params: { id: string } }
 ) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

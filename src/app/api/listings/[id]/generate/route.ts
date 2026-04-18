@@ -14,7 +14,14 @@ const VALID_TASKS = new Set<TaskType>([
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  {
+  try {
+  { params }
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}: { params: { id: string } }
 ) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
