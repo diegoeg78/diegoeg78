@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
@@ -14,7 +15,7 @@ const playfair = Playfair_Display({
   variable: "--font-playfair",
 });
 
-const sans: React.CSSProperties = { fontFamily: "system-ui, -apple-system, sans-serif" };
+const sans: CSSProperties = { fontFamily: "system-ui, -apple-system, sans-serif" };
 
 export default async function LandingPage() {
   const { userId } = await auth();
