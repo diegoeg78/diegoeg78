@@ -1,11 +1,7 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
 import { Playfair_Display } from "next/font/google";
 import MobileMenu from "@/components/MobileMenu";
-
-export const dynamic = "force-dynamic";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -17,9 +13,7 @@ const playfair = Playfair_Display({
 
 const sans: CSSProperties = { fontFamily: "system-ui, -apple-system, sans-serif" };
 
-export default async function LandingPage() {
-  const { userId } = await auth();
-  if (userId) redirect("/listings");
+export default function LandingPage() {
 
   return (
     <div className={`${playfair.variable} min-h-screen`} style={{ fontFamily: "var(--font-playfair), Georgia, serif" }}>
