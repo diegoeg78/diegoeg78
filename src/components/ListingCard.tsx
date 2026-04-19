@@ -17,6 +17,7 @@ interface ListingRow {
   fairHousingScan: string;
   sellerNotes: string;
   cmaData: string;
+  coverPhotoB64: string;
 }
 
 const SECTIONS = [
@@ -40,7 +41,17 @@ export default function ListingCard({ listing }: { listing: ListingRow }) {
   const pct = Math.round((done / total) * 100);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5 flex flex-col gap-4 hover:border-blue-200 hover:shadow-sm transition-all">
+    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden flex flex-col gap-4 hover:border-blue-200 hover:shadow-sm transition-all">
+      {listing.coverPhotoB64 && (
+        <Link href={`/listings/${listing.id}`}>
+          <img
+            src={`data:image/jpeg;base64,${listing.coverPhotoB64}`}
+            alt={listing.address}
+            className="w-full h-40 object-cover"
+          />
+        </Link>
+      )}
+      <div className="px-5 pb-5 flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -129,6 +140,7 @@ export default function ListingCard({ listing }: { listing: ListingRow }) {
         <div className="ml-auto">
           <DeleteListingButton listingId={listing.id} address={listing.address} />
         </div>
+      </div>
       </div>
     </div>
   );

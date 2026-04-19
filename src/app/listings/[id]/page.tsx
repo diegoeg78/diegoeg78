@@ -35,6 +35,16 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
         </div>
       </div>
 
+      {listing.coverPhotoB64 && (
+        <div className="mb-6 rounded-xl overflow-hidden border border-gray-200">
+          <img
+            src={`data:image/jpeg;base64,${listing.coverPhotoB64}`}
+            alt={listing.address}
+            className="w-full max-h-72 object-cover"
+          />
+        </div>
+      )}
+
       <ListingForm
         listingId={listing.id}
         initial={{
@@ -53,6 +63,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
           videoScript: listing.videoScript,
           fairHousingScan: listing.fairHousingScan,
           sellerNotes: listing.sellerNotes,
+          coverPhotoB64: listing.coverPhotoB64,
         }}
       />
     </main>

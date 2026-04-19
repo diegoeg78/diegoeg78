@@ -24,6 +24,7 @@ export interface ListingPayload {
   videoScript: string;
   fairHousingScan: string;
   sellerNotes: string;
+  coverPhotoB64: string;
 }
 
 const blank: ListingPayload = {
@@ -42,6 +43,7 @@ const blank: ListingPayload = {
   videoScript: "",
   fairHousingScan: "",
   sellerNotes: "",
+  coverPhotoB64: "",
 };
 
 const TABS = [
@@ -76,7 +78,9 @@ export default function ListingForm({ initial, listingId }: ListingFormProps) {
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState("");
   const [extractedBanner, setExtractedBanner] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const screenshotInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   function set<K extends keyof ListingPayload>(k: K, v: ListingPayload[K]) {
@@ -151,6 +155,37 @@ export default function ListingForm({ initial, listingId }: ListingFormProps) {
       setExtracting(false);
       if (screenshotInputRef.current) screenshotInputRef.current.value = "";
     }
+  }
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoUploading(true);
+    try {
+      const compressed = await compressImage(file, 1200, 0.82);
+      set("coverPhotoB64", compressed);
+    } finally {
+      setPhotoUploading(false);
+      if (photoInputRef.current) photoInputRef.current.value = "";
+    }
+  }
+
+  function compressImage(file: File, maxPx: number, quality: number): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL("image/jpeg", quality).replace(/^data:image\/jpeg;base64,/, ""));
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
   }
 
   async function handleSave() {
@@ -288,6 +323,50 @@ export default function ListingForm({ initial, listingId }: ListingFormProps) {
                 <button onClick={() => setExtractedBanner(false)} className="text-green-600 hover:text-green-900 text-xs ml-4">✕</button>
               </div>
             )}
+          </div>
+
+          {/* Cover Photo */}
+          <div className="border border-dashed border-gray-300 rounded-xl p-4 bg-gray-50">
+            <p className="text-sm font-medium text-gray-800 mb-3">Cover Photo</p>
+            {form.coverPhotoB64 ? (
+              <div className="space-y-3">
+                <img
+                  src={`data:image/jpeg;base64,${form.coverPhotoB64}`}
+                  alt="Cover"
+                  className="w-full max-h-56 object-cover rounded-lg border border-gray-200"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={photoUploading}
+                    className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                  >
+                    {photoUploading ? "Processing…" : "Replace Photo"}
+                  </button>
+                  <button
+                    onClick={() => set("coverPhotoB64", "")}
+                    className="px-3 py-1.5 text-xs font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => photoInputRef.current?.click()}
+                disabled={photoUploading}
+                className="w-full py-6 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-blue-400 hover:text-blue-600 transition-colors disabled:opacity-50"
+              >
+                {photoUploading ? "Processing…" : "📷 Upload cover photo"}
+              </button>
+            )}
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoUpload}
+              className="hidden"
+            />
           </div>
 
           <div>
